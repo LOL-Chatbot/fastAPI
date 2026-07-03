@@ -714,16 +714,19 @@ class LlmService:
 
         for mention in enemy_mentions[:5]:
             champion_id = str(mention["champion_id"])
+            analysis_context = (
+                self._recommendation_service.get_champion_analysis_context(
+                    champion_id=champion_id,
+                    position=position,
+                )
+            )
             context_parts.append(
                 "[상대 챔피언 카운터 근거]\n"
                 f"상대 또는 기준 챔피언={champion_id}, 기준 포지션={position.value}\n"
                 "win_rate는 이 챔피언의 상대전 승률입니다. "
                 "카운터는 이 챔피언의 win_rate가 낮은 상대입니다. "
                 "win_rate가 높은 상대는 카운터로 추천하지 않습니다.\n"
-                f"{self._recommendation_service.get_champion_analysis_context(
-                    champion_id=champion_id,
-                    position=position,
-                )}"
+                f"{analysis_context}"
             )
 
         for mention in ally_mentions[:5]:
@@ -732,15 +735,18 @@ class LlmService:
             if not isinstance(ally_position, Position) or ally_position == position:
                 continue
 
+            synergy_context = (
+                self._recommendation_service.get_champion_synergy_context(
+                    champion_id=champion_id,
+                    my_position=ally_position,
+                    synergy_position=position,
+                )
+            )
             context_parts.append(
                 "[아군 챔피언 시너지 근거]\n"
                 f"아군 챔피언={champion_id}, 아군 포지션={ally_position.value}, "
                 f"내 포지션={position.value}\n"
-                f"{self._recommendation_service.get_champion_synergy_context(
-                    champion_id=champion_id,
-                    my_position=ally_position,
-                    synergy_position=position,
-                )}"
+                f"{synergy_context}"
             )
 
         if not ally_mentions and not enemy_mentions:
