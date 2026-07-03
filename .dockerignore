@@ -1,0 +1,12 @@
+.git
+.github
+__pycache__
+**/__pycache__
+*.pyc
+.env
+*.log
+fastapi_server.out.log
+fastapi_server.err.log
+third_party/opgg-mcp/.git
+third_party/opgg-mcp/node_modules
+third_party/opgg-mcp/dist
