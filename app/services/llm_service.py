@@ -400,6 +400,15 @@ class LlmService:
             }
 
         if route == "counter_pick" and champion_ids and position:
+            def build_analysis_context(champion_id: str) -> str:
+                analysis_context = (
+                    self._recommendation_service.get_champion_analysis_context(
+                        champion_id=champion_id,
+                        position=position,
+                    )
+                )
+                return f"[분석 대상 챔피언: {champion_id}]\n{analysis_context}"
+
             return {
                 "question_type": "상대 챔피언 기준 카운터/추천 픽",
                 "tool_name": "lol_get_champion_analysis",
@@ -411,13 +420,7 @@ class LlmService:
                     "win_rate가 높은 상대는 카운터가 아니라 상대하기 쉬운 챔피언입니다."
                 ),
                 "retrieved_data": "\n\n".join(
-                    (
-                        f"[분석 대상 챔피언: {champion_id}]\n"
-                        f"{self._recommendation_service.get_champion_analysis_context(
-                            champion_id=champion_id,
-                            position=position,
-                        )}"
-                    )
+                    build_analysis_context(champion_id)
                     for champion_id in champion_ids[:5]
                 ),
             }
