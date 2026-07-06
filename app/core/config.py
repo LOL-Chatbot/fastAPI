@@ -74,6 +74,7 @@ class Settings:
     gemini_model: str
     gemini_temperature: float
     opgg_mcp_dir: str
+    fastapi_root_path: str
     data_dragon_version: str | None
     data_dragon_language: str
     llm_prompts: LlmPromptConfig
@@ -88,6 +89,7 @@ def get_settings() -> Settings:
             "OPGG_MCP_DIR",
             r"C:\Users\jinwo\Documents\opgg\opgg-mcp",
         ),
+        fastapi_root_path=os.getenv("FASTAPI_ROOT_PATH", ""),
         data_dragon_version=os.getenv("DATA_DRAGON_VERSION") or None,
         data_dragon_language=os.getenv("DATA_DRAGON_LANGUAGE", "ko_KR"),
         llm_prompts=LlmPromptConfig(),

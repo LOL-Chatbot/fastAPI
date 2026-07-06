@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.core.config import get_settings
 from app.core.state import create_app_state, set_app_state
 from app.routers import champions, chat, health, opgg_champions, recommendations
 
@@ -20,6 +21,7 @@ app = FastAPI(
     title="LOL 챗봇 API",
     version="v1",
     lifespan=lifespan,
+    root_path=get_settings().fastapi_root_path,
 )
 
 app.add_middleware(
