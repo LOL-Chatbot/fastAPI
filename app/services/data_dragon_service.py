@@ -4,7 +4,7 @@ from urllib.request import urlopen
 
 from app.core.config import Settings, get_settings
 from app.schemas.common import Image
-from app.schemas.recommendation import NamedImage
+from app.schemas.recommendation import NamedImage, RuneOption, RuneSlot, RuneTree, StatShardRow
 
 
 class DataDragonService:
@@ -49,6 +49,102 @@ class DataDragonService:
             "5011": "체력 증가",
         }
         return stat_shards.get(str(stat_shard_id), str(stat_shard_id))
+
+    def get_stat_shard_image(self, stat_shard_id: int | str) -> Image | None:
+        stat_shard_icons = {
+            "5001": "perk-images/StatMods/StatModsHealthScalingIcon.png",
+            "5002": "perk-images/StatMods/StatModsArmorIcon.png",
+            "5003": "perk-images/StatMods/StatModsMagicResIcon.png",
+            "5005": "perk-images/StatMods/StatModsAttackSpeedIcon.png",
+            "5007": "perk-images/StatMods/StatModsCDRScalingIcon.png",
+            "5008": "perk-images/StatMods/StatModsAdaptiveForceIcon.png",
+            "5011": "perk-images/StatMods/StatModsHealthScalingIcon.png",
+        }
+        shard_key = str(stat_shard_id)
+        icon = stat_shard_icons.get(shard_key)
+        if icon is None:
+            return None
+
+        name = self.get_stat_shard_name(shard_key)
+        return Image(
+            image_url=self._global_asset_url(icon),
+            image_key=f"stat_shard_{shard_key}",
+            alt_text=name,
+        )
+
+    def get_rune_tree(
+        self,
+        style_name: str,
+        selected_rune_names: list[str],
+    ) -> RuneTree | None:
+        selected_keys = {
+            self._normalize_rune_key(rune_name)
+            for rune_name in selected_rune_names
+        }
+        ko_style_by_id = {
+            style.get("id"): style
+            for style in self._get_ko_runes()
+        }
+
+        for en_style in self._get_en_runes():
+            if self._normalize_rune_key(str(en_style.get("name", ""))) != self._normalize_rune_key(style_name):
+                continue
+
+            ko_style = ko_style_by_id.get(en_style.get("id"), en_style)
+            rune_slots = []
+            for slot_index, en_slot in enumerate(en_style.get("slots", [])):
+                ko_slots = ko_style.get("slots", []) or []
+                ko_slot = ko_slots[slot_index] if slot_index < len(ko_slots) else {}
+                ko_runes_by_id = {
+                    rune.get("id"): rune
+                    for rune in ko_slot.get("runes", [])
+                }
+                rune_slots.append(
+                    RuneSlot(
+                        runes=[
+                            self._build_rune_option(
+                                en_rune=en_rune,
+                                ko_rune=ko_runes_by_id.get(en_rune.get("id"), en_rune),
+                                selected_keys=selected_keys,
+                            )
+                            for en_rune in en_slot.get("runes", [])
+                        ]
+                    )
+                )
+
+            return RuneTree(
+                style_id=en_style.get("id"),
+                name=str(ko_style.get("name", en_style.get("name", style_name))),
+                slots=rune_slots,
+            )
+
+        return None
+
+    def get_stat_shard_rows(self, selected_stat_shard_ids: list[int | str]) -> list[StatShardRow]:
+        selected_ids = [str(stat_shard_id) for stat_shard_id in selected_stat_shard_ids]
+        shard_rows = [
+            ["5005", "5008", "5007"],
+            ["5008", "5002", "5003"],
+            ["5001", "5002", "5003"],
+        ]
+
+        return [
+            StatShardRow(
+                runes=[
+                    RuneOption(
+                        id=shard_id,
+                        name=self.get_stat_shard_name(shard_id),
+                        image=self.get_stat_shard_image(shard_id),
+                        selected=(
+                            row_index < len(selected_ids)
+                            and selected_ids[row_index] == shard_id
+                        ),
+                    )
+                    for shard_id in row
+                ]
+            )
+            for row_index, row in enumerate(shard_rows)
+        ]
 
     def get_summoner_spell(self, spell_id: int | str) -> NamedImage:
         spells = self._get_ko_summoner().get("data", {})
@@ -175,6 +271,33 @@ class DataDragonService:
                 for rune in slot.get("runes", []):
                     rune_by_id[rune.get("id")] = rune
         return rune_by_id
+
+    def _build_rune_option(
+        self,
+        en_rune: dict[str, Any],
+        ko_rune: dict[str, Any],
+        selected_keys: set[str],
+    ) -> RuneOption:
+        name = str(ko_rune.get("name", en_rune.get("name", "")))
+        en_name = str(en_rune.get("name", ""))
+        icon = ko_rune.get("icon")
+        rune_id = en_rune.get("id", ko_rune.get("id", ""))
+        return RuneOption(
+            id=rune_id,
+            name=name,
+            image=Image(
+                image_url=self._global_asset_url(icon),
+                image_key=f"rune_{rune_id}",
+                alt_text=name,
+            ),
+            selected=(
+                self._normalize_rune_key(en_name) in selected_keys
+                or self._normalize_rune_key(name) in selected_keys
+            ),
+        )
+
+    def _normalize_rune_key(self, value: str) -> str:
+        return value.strip().lower().replace(" ", "").replace(":", "").replace("'", "")
 
     def _get_ko_runes(self) -> list[dict[str, Any]]:
         if self._ko_runes is None:

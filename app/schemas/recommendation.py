@@ -24,6 +24,27 @@ class NamedImage(BaseModel):
     image: Image | None = None
 
 
+class RuneOption(BaseModel):
+    id: int | str
+    name: str
+    image: Image | None = None
+    selected: bool = False
+
+
+class RuneSlot(BaseModel):
+    runes: list[RuneOption]
+
+
+class RuneTree(BaseModel):
+    style_id: int | None = None
+    name: str
+    slots: list[RuneSlot]
+
+
+class StatShardRow(BaseModel):
+    runes: list[RuneOption]
+
+
 class RuneRecommendationData(BaseModel):
     champion_id: str
     position: Position
@@ -35,6 +56,9 @@ class RuneRecommendationData(BaseModel):
     secondary_runes: list[str]
     secondary_rune_images: list[NamedImage] = []
     stat_shards: list[str]
+    primary_tree: RuneTree | None = None
+    secondary_tree: RuneTree | None = None
+    stat_shard_rows: list[StatShardRow] = []
 
 
 class RuneBuildData(BaseModel):
@@ -46,6 +70,9 @@ class RuneBuildData(BaseModel):
     secondary_runes: list[str]
     secondary_rune_images: list[NamedImage] = []
     stat_shards: list[str]
+    primary_tree: RuneTree | None = None
+    secondary_tree: RuneTree | None = None
+    stat_shard_rows: list[StatShardRow] = []
 
 
 class SpellRecommendationData(BaseModel):

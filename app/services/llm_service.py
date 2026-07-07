@@ -316,7 +316,7 @@ class LlmService:
         position_label = f" {position.value}" if position else ""
 
         if route == "champion_build":
-            return f"{champion_label}{position_label} 빌드 요약입니다."
+            return f"{champion_label}{position_label} 빌드를 알려드릴게요."
         if route == "counter_pick":
             return f"{champion_label}{position_label} 카운터 요약입니다."
 

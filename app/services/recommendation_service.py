@@ -79,6 +79,9 @@ class RecommendationService:
                 secondary_runes=runes.secondary_runes,
                 secondary_rune_images=runes.secondary_rune_images,
                 stat_shards=runes.stat_shards,
+                primary_tree=runes.primary_tree,
+                secondary_tree=runes.secondary_tree,
+                stat_shard_rows=runes.stat_shard_rows,
             ),
             spells=spells.spells,
             items=ItemBuildData(
@@ -412,6 +415,8 @@ class RecommendationService:
     ) -> RuneRecommendationData:
         runes = analysis.get("runes", {})
         primary_runes = runes.get("primary_rune_names", [])
+        secondary_runes = runes.get("secondary_rune_names", [])
+        stat_mod_names = runes.get("stat_mod_names", [])
         keystone_name = primary_runes[0] if primary_runes else ""
         keystone = self._data_dragon_service.get_rune(keystone_name)
         primary_rune_images = [
@@ -420,7 +425,7 @@ class RecommendationService:
         ]
         secondary_rune_images = [
             self._data_dragon_service.get_rune(rune_name)
-            for rune_name in runes.get("secondary_rune_names", [])
+            for rune_name in secondary_runes
         ]
 
         return RuneRecommendationData(
@@ -439,8 +444,17 @@ class RecommendationService:
             secondary_rune_images=secondary_rune_images,
             stat_shards=[
                 self._data_dragon_service.get_stat_shard_name(value)
-                for value in runes.get("stat_mod_names", [])
+                for value in stat_mod_names
             ],
+            primary_tree=self._data_dragon_service.get_rune_tree(
+                style_name=str(runes.get("primary_page_name", "")),
+                selected_rune_names=primary_runes,
+            ),
+            secondary_tree=self._data_dragon_service.get_rune_tree(
+                style_name=str(runes.get("secondary_page_name", "")),
+                selected_rune_names=secondary_runes,
+            ),
+            stat_shard_rows=self._data_dragon_service.get_stat_shard_rows(stat_mod_names),
         )
 
     def _build_spells_from_analysis(
