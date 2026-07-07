@@ -228,35 +228,12 @@ class LlmService:
             champion_id=champion_id,
             position=position,
         )
-        spell_names = [spell.name for spell in build.spells]
-        start_item_names = [item.name for item in build.items.start_items]
-        core_item_names = [item.name for item in build.items.core_items]
-        counter_names = [counter.name_ko for counter in build.counters]
-        prompt = build_chat_prompt(
-            settings=self._settings,
-            message=message,
-            champion_id=build.champion_id,
-            position=position.value,
-            primary_style=build.runes.primary_style,
-            keystone=build.runes.keystone.name,
-            secondary_style=build.runes.secondary_style,
-            spells=spell_names,
-            start_items=start_item_names,
-            core_items=core_item_names,
-            skills=build.skills.priority,
-            counters=counter_names,
-        )
-        generated_answer = self._generate_answer(prompt)
-        answer = generated_answer or self._build_fallback_answer(
-            message=message,
-            build=build,
-            spell_names=spell_names,
-            start_item_names=start_item_names,
-            core_item_names=core_item_names,
-            counter_names=counter_names,
-        )
         return ChatData(
-            answer=answer,
+            answer=self._build_card_first_answer(
+                route="champion_build",
+                champion_id=build.champion_id,
+                position=build.position,
+            ),
             related_champions=[
                 RelatedChampion(
                     champion_id=build.champion_id,
@@ -294,6 +271,22 @@ class LlmService:
                 related_champions=self._build_related_champions(champion_ids),
             )
 
+        attachments = self._build_retrieval_attachments(
+            route=route,
+            champion_ids=champion_ids,
+            position=position,
+        )
+        if attachments:
+            return ChatData(
+                answer=self._build_card_first_answer(
+                    route=route,
+                    champion_id=champion_ids[0] if champion_ids else None,
+                    position=position,
+                ),
+                related_champions=self._build_related_champions(champion_ids),
+                attachments=attachments,
+            )
+
         prompt = build_retrieval_chat_prompt(
             settings=self._settings,
             message=message,
@@ -310,12 +303,24 @@ class LlmService:
         return ChatData(
             answer=answer,
             related_champions=self._build_related_champions(champion_ids),
-            attachments=self._build_retrieval_attachments(
-                route=route,
-                champion_ids=champion_ids,
-                position=position,
-            ),
+            attachments=attachments,
         )
+
+    def _build_card_first_answer(
+        self,
+        route: str,
+        champion_id: str | None,
+        position: Position | None,
+    ) -> str:
+        champion_label = champion_id or "챔피언"
+        position_label = f" {position.value}" if position else ""
+
+        if route == "champion_build":
+            return f"{champion_label}{position_label} 빌드 요약입니다."
+        if route == "counter_pick":
+            return f"{champion_label}{position_label} 카운터 요약입니다."
+
+        return "조회 결과 요약입니다."
 
     def _build_retrieval_attachments(
         self,
