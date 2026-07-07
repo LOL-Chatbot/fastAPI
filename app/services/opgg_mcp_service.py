@@ -615,15 +615,15 @@ class OpggMcpService:
         self,
         text: str,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        match = re.search(
-            r"Data\(Summary\(AverageStats\([^)]*\)\),\[(.*?)\],\[(.*?)\]\)",
+        counter_groups = re.findall(
+            r"\[((?:StrongCounter\([^)]*\)(?:,)?)+)\]",
             text,
         )
-        if not match:
+        if len(counter_groups) < 2:
             return [], []
 
-        easy_counters = self._parse_counters(match.group(1))
-        difficult_counters = self._parse_counters(match.group(2))
+        easy_counters = self._parse_counters(counter_groups[0])
+        difficult_counters = self._parse_counters(counter_groups[1])
         return easy_counters, difficult_counters
 
     def _parse_champion_synergies(self, text: str) -> dict[str, Any]:
