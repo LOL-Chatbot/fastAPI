@@ -515,6 +515,9 @@ class RecommendationService:
                     "OP.GG 기준 상대 승률 "
                     f"{counter.get('win_rate', 0):.0%}인 까다로운 매치업입니다."
                 ),
+                image=self._data_dragon_service.get_champion_image(
+                    str(counter.get("champion_id", ""))
+                ).image,
             )
             for counter in analysis.get("strong_counters", [])
         ]

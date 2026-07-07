@@ -11,7 +11,7 @@ from app.core.config import (
     create_llm_client,
     get_settings,
 )
-from app.schemas.chat import ChatData, RelatedChampion
+from app.schemas.chat import ChatAttachment, ChatData, RelatedChampion
 from app.schemas.common import Position
 from app.schemas.recommendation import ChampionBuildData, NamedImage
 from app.services.recommendation_service import RecommendationService
@@ -199,7 +199,7 @@ class LlmService:
                 core_item_names=core_item_names,
                 counter_names=counter_names,
             )
-            return prompt, fallback_answer, self._render_visual_build_summary(build)
+            return prompt, fallback_answer, ""
 
         retrieval = self._retrieve_context(
             route=route,
@@ -255,14 +255,19 @@ class LlmService:
             core_item_names=core_item_names,
             counter_names=counter_names,
         )
-        visual_summary = self._render_visual_build_summary(build)
-
         return ChatData(
-            answer=f"{answer}\n\n---\n\n{visual_summary}",
+            answer=answer,
             related_champions=[
                 RelatedChampion(
                     champion_id=build.champion_id,
                     name_ko=build.champion_id,
+                )
+            ],
+            attachments=[
+                ChatAttachment(
+                    type="champion_build",
+                    title=f"{build.champion_id} {build.position.value} 빌드 요약",
+                    data=build,
                 )
             ],
         )
@@ -305,7 +310,37 @@ class LlmService:
         return ChatData(
             answer=answer,
             related_champions=self._build_related_champions(champion_ids),
+            attachments=self._build_retrieval_attachments(
+                route=route,
+                champion_ids=champion_ids,
+                position=position,
+            ),
         )
+
+    def _build_retrieval_attachments(
+        self,
+        route: str,
+        champion_ids: list[str],
+        position: Position | None,
+    ) -> list[ChatAttachment]:
+        if route != "counter_pick" or not champion_ids or position is None:
+            return []
+
+        try:
+            counters = self._recommendation_service.get_counters(
+                champion_id=champion_ids[0],
+                position=position,
+            )
+        except Exception:
+            return []
+
+        return [
+            ChatAttachment(
+                type="counters",
+                title=f"{counters.champion_id} {counters.position.value} 카운터",
+                data=counters,
+            )
+        ]
 
     def _retrieve_context(
         self,
