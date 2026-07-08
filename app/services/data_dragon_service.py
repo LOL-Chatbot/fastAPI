@@ -32,11 +32,20 @@ class DataDragonService:
 
     def get_rune_style_name(self, style_name: str) -> str:
         style_by_en_name = self._get_style_by_en_name()
-        return style_by_en_name.get(style_name, style_name)
+        style_key = self._normalize_rune_key(style_name)
+        return (
+            style_by_en_name.get(style_name)
+            or style_by_en_name.get(style_key)
+            or style_name
+        )
 
     def get_rune(self, rune_name: str) -> NamedImage:
         rune_by_en_name = self._get_rune_by_en_name()
-        return rune_by_en_name.get(rune_name, NamedImage(name=rune_name))
+        rune_key = self._normalize_rune_key(rune_name)
+        return rune_by_en_name.get(rune_name) or rune_by_en_name.get(
+            rune_key,
+            NamedImage(name=rune_name),
+        )
 
     def get_stat_shard_name(self, stat_shard_id: int | str) -> str:
         stat_shards = {
@@ -86,11 +95,17 @@ class DataDragonService:
             for style in self._get_ko_runes()
         }
 
+        style_key = self._normalize_rune_key(style_name)
         for en_style in self._get_en_runes():
-            if self._normalize_rune_key(str(en_style.get("name", ""))) != self._normalize_rune_key(style_name):
+            ko_style = ko_style_by_id.get(en_style.get("id"), en_style)
+            style_keys = {
+                self._normalize_rune_key(str(en_style.get("id", ""))),
+                self._normalize_rune_key(str(en_style.get("name", ""))),
+                self._normalize_rune_key(str(ko_style.get("name", ""))),
+            }
+            if style_key not in style_keys:
                 continue
 
-            ko_style = ko_style_by_id.get(en_style.get("id"), en_style)
             rune_slots = []
             for slot_index, en_slot in enumerate(en_style.get("slots", [])):
                 ko_slots = ko_style.get("slots", []) or []
@@ -239,7 +254,7 @@ class DataDragonService:
 
                     name = ko_rune.get("name", rune.get("name", ""))
                     icon = ko_rune.get("icon")
-                    self._rune_by_en_name[rune.get("name", "")] = NamedImage(
+                    named_image = NamedImage(
                         name=name,
                         image=Image(
                             image_url=self._global_asset_url(icon),
@@ -247,6 +262,16 @@ class DataDragonService:
                             alt_text=name,
                         ),
                     )
+                    for key in (
+                        str(rune.get("name", "")),
+                        str(name),
+                        str(rune_id),
+                    ):
+                        if key:
+                            self._rune_by_en_name[key] = named_image
+                            self._rune_by_en_name[
+                                self._normalize_rune_key(key)
+                            ] = named_image
 
         return self._rune_by_en_name
 
@@ -258,10 +283,15 @@ class DataDragonService:
             style.get("id"): style.get("name", "")
             for style in self._get_ko_runes()
         }
-        self._style_by_en_name = {
-            style.get("name", ""): ko_style_by_id.get(style.get("id"), style.get("name", ""))
-            for style in self._get_en_runes()
-        }
+        self._style_by_en_name = {}
+        for style in self._get_en_runes():
+            en_name = str(style.get("name", ""))
+            ko_name = str(ko_style_by_id.get(style.get("id"), en_name))
+            style_id = str(style.get("id", ""))
+            for key in (en_name, ko_name, style_id):
+                if key:
+                    self._style_by_en_name[key] = ko_name
+                    self._style_by_en_name[self._normalize_rune_key(key)] = ko_name
         return self._style_by_en_name
 
     def _build_rune_by_id(self) -> dict[int, dict[str, Any]]:
