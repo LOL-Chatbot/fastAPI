@@ -107,12 +107,16 @@ class SkillRecommendationData(BaseModel):
     position: Position
     priority: list[str]
     priority_images: list[NamedImage] = []
+    all_skill_images: list[NamedImage] = []
+    level_order: list[str] = []
     description: str
 
 
 class SkillBuildData(BaseModel):
     priority: list[str]
     priority_images: list[NamedImage] = []
+    all_skill_images: list[NamedImage] = []
+    level_order: list[str] = []
     description: str
 
 

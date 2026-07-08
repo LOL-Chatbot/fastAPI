@@ -93,6 +93,8 @@ class RecommendationService:
             skills=SkillBuildData(
                 priority=skills.priority,
                 priority_images=skills.priority_images,
+                all_skill_images=skills.all_skill_images,
+                level_order=skills.level_order,
                 description=skills.description,
             ),
             counters=counters.counters,
@@ -503,12 +505,18 @@ class RecommendationService:
             self._data_dragon_service.get_champion_skill(champion_id, skill_key)
             for skill_key in priority
         ]
+        all_skill_images = [
+            self._data_dragon_service.get_champion_skill(champion_id, skill_key)
+            for skill_key in ["Q", "W", "E", "R"]
+        ]
 
         return SkillRecommendationData(
             champion_id=champion_id,
             position=position,
             priority=priority,
             priority_images=priority_images,
+            all_skill_images=all_skill_images,
+            level_order=skill_order,
             description=(
                 f"스킬 선마는 {' > '.join(priority)} 순서를 추천합니다. "
                 f"레벨별 추천 순서는 {' - '.join(skill_order)} 입니다."
